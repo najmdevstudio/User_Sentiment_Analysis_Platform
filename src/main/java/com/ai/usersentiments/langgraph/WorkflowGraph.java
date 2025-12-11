@@ -20,22 +20,15 @@ public class WorkflowGraph {
 
     public WorkFlowState run(String userMessage) {
 
-        // ───────────────────────────────────────────────
-        // STEP 1 — Initialize state
-        // ───────────────────────────────────────────────
+
         WorkFlowState state = new WorkFlowState(userMessage);
 
-        // ───────────────────────────────────────────────
-        // STEP 2 — Classification (triggering AOP routing metrics)
-        // ───────────────────────────────────────────────
+
         state = classifierNode.execute(state);
 
         SentimentType sentiment = state.sentiment();
 
-        // ───────────────────────────────────────────────
-        // STEP 3 — Route to agent node based on sentiment
-        // (Each node invocation will also trigger AOP metrics)
-        // ───────────────────────────────────────────────
+
         WorkFlowState finalState = switch (sentiment) {
             case POSITIVE -> state.withAgentResponse("Thank you for your positive message!");
             case NEGATIVE, COMPLAINT -> feedbackHandlerNode.execute(state);
@@ -43,7 +36,7 @@ public class WorkflowGraph {
             default -> state.withAgentResponse("I'm not sure how to help with that.");
         };
 
-        // 🔍 Meta Agent evaluates routing correctness & scores
+
         metaRoutingEvaluationService.evaluateRouting(finalState);
 
         return finalState;
