@@ -17,7 +17,7 @@ public class ScoringService {
     public Score evaluate(String userMessage, String agentReply) {
         try {
             // Use a judging model like Anthropic or DeepSeek R1
-            String judgeModel = "anthropic";
+            String judgeModel = "gemini";
             ModelProvider judge = modelFactory.get(judgeModel);
 
             String prompt = promptBuilder.build(userMessage, agentReply);
