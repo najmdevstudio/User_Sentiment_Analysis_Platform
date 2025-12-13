@@ -26,8 +26,14 @@ public class WorkflowGraph {
 
         state = classifierNode.execute(state);
 
-        SentimentType sentiment = state.sentiment();
 
+
+        if (looksLikeTicketQuery(userMessage)) {
+            state = state.withSentiment(SentimentType.QUERY);
+        }
+
+
+        SentimentType sentiment = state.sentiment();
 
         WorkFlowState finalState = switch (sentiment) {
             case POSITIVE -> state.withAgentResponse("Thank you for your positive message!");
@@ -40,5 +46,14 @@ public class WorkflowGraph {
         metaRoutingEvaluationService.evaluateRouting(finalState);
 
         return finalState;
+    }
+    private boolean looksLikeTicketQuery(String message) {
+        String lower = message.toLowerCase();
+        boolean mentionsTicket = lower.contains("ticket");
+        boolean mentionsCloseOrStatus = lower.contains("close") ||
+                lower.contains("status") ||
+                lower.contains("update");
+        boolean hasIdPattern = message.matches("(?s).*\\b[0-9a-fA-F]{8}\\b.*");
+        return mentionsTicket && (mentionsCloseOrStatus || hasIdPattern);
     }
 }

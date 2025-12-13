@@ -17,6 +17,7 @@ public class WorkflowStep {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "execution_id", nullable = false)
     private WorkflowExecution execution;
 
     private int stepOrder;

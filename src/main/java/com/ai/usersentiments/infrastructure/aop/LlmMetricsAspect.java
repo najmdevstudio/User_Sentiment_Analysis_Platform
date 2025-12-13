@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 public class LlmMetricsAspect {
     private final MeterRegistry registry;
 
-    @Around("execution(* com.ai.modules.providers.*Provider.generate(..))")
+    @Around("execution(* com.ai.usersentiments.modules.providers.*Provider.generate(..))")
     public Object measureLLMCallLatency(ProceedingJoinPoint pjp) throws Throwable{
         long start = System.nanoTime();
         String providerName = pjp.getTarget()

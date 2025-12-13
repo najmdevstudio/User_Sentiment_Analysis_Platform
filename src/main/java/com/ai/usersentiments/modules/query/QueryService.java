@@ -10,61 +10,99 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 public class QueryService {
-    private final TicketJpaRepository repo;
+    private final TicketJpaRepository ticketRepository;
     private final LlmProviderRouter router;
     private final ScoringService scoringService;
 
-    public String handleQuery(String message) {
+    private static final Pattern TICKET_ID_PATTERN =
+            Pattern.compile("\\b([0-9a-fA-F]{8})\\b");
 
-        // ────────────────────────────────────────────────
-        // 1. Extract Ticket ID using LLM
-        // ────────────────────────────────────────────────
-        router.setStrategy(RoutingStrategy.SINGLE); // Best for deterministic extraction
+    public QueryResult handleQuery(String message) {
 
-        String extractPrompt = """
-            Extract ONLY the Ticket ID from the following user query.
-            If no valid ID exists, respond with "NONE".
+        // 1. Try regex extraction
+        String ticketId = extractTicketId(message);
 
-            User Query:
-            "%s"
-            """.formatted(message);
+        // 2. Optional fallback: use LLM to extract ticket if regex fails
+        if (ticketId == null) {
+            router.setStrategy(RoutingStrategy.SINGLE);
+            String extractPrompt = """
+                    Extract ONLY the ticket ID from the following user query.
+                    A valid ticket ID is exactly 8 characters, hexadecimal (0-9, a-f).
+                    If no valid ID exists, respond with 'NONE'.
 
-        String ticketId = router.route(extractPrompt).trim();
+                    User query:
+                    "%s"
+                    """.formatted(message);
 
-        if (ticketId.equalsIgnoreCase("NONE")) {
-            return "I couldn't identify a valid ticket ID in your message. Please provide the ticket number.";
+            String llmResult = router.route(extractPrompt).trim();
+            if (!"NONE".equalsIgnoreCase(llmResult) &&
+                    llmResult.matches("^[0-9a-fA-F]{8}$")) {
+                ticketId = llmResult;
+            }
         }
 
-        // ────────────────────────────────────────────────
-        // 2. Query database for ticket
-        // ────────────────────────────────────────────────
-        Optional<Ticket> opt = repo.findById(ticketId);
-
-        if (opt.isEmpty()) {
-            return "I could not find a ticket with ID: " + ticketId;
+        if (ticketId == null) {
+            String reply = """
+                    I couldn't detect a valid ticket ID in your message.
+                    Please provide your 8-character ticket ID so I can help you.
+                    """;
+            return new QueryResult(null, reply);
         }
 
-        Ticket ticket = opt.get();
+        // 3. Lookup ticket in DB
+        Optional<Ticket> ticketOpt = ticketRepository.findById(ticketId);
 
-        // ────────────────────────────────────────────────
-        // 3. Build final status message
-        // ────────────────────────────────────────────────
+        if (ticketOpt.isEmpty()) {
+            String reply = """
+                    I couldn't find any ticket with ID %s.
+                    Please check the ID and try again.
+                    """.formatted(ticketId);
+            return new QueryResult(ticketId, reply);
+        }
+
+        Ticket ticket = ticketOpt.get();
+
+        // 4. Apply simple business logic: close if user says 'close'
+        if (message.toLowerCase().contains("close")) {
+            ticket.setStatus("CLOSED");
+            ticketRepository.save(ticket);
+        }
+
+        // 5. Build nice response
         String reply = """
-            Status for ticket %s:
-            Current status: %s
-            """.formatted(ticketId, ticket.getStatus());
+                Dear User,
 
-        // ────────────────────────────────────────────────
-        // 4. Score accuracy and clarity of this response
-        // ────────────────────────────────────────────────
+                I found your ticket with ID: %s.
+                Current status: %s.
+
+                %s
+
+                Best regards,
+                Support Agent
+                """.formatted(ticketId, ticket.getStatus(),
+                message.toLowerCase().contains("close")
+                        ? "Your ticket has been marked as CLOSED."
+                        : "If you want to close or update this ticket, just let me know.");
+
         Score score = scoringService.evaluate(message, reply);
 
         System.out.println("Query Response Score = " + score);
 
-        return reply;
+        return new QueryResult(ticketId, reply);
     }
+
+    private String extractTicketId(String message) {
+        Matcher matcher = TICKET_ID_PATTERN.matcher(message);
+        return matcher.find() ? matcher.group(1) : null;
+    }
+
 }
+
+
+

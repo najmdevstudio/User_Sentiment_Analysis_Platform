@@ -2,6 +2,7 @@ package com.ai.usersentiments.langgraph.nodes;
 
 import com.ai.usersentiments.langgraph.model.SentimentType;
 import com.ai.usersentiments.langgraph.model.WorkFlowState;
+import com.ai.usersentiments.modules.query.QueryResult;
 import com.ai.usersentiments.modules.query.QueryService;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -19,9 +20,11 @@ public class QueryHandlerNode implements Node {
     @CircuitBreaker(name = "queryHandlerNode", fallbackMethod = "fallbackExecute")
     public WorkFlowState execute(WorkFlowState state) {
 
-        String reply = queryService.handleQuery(state.userMessage());
+        QueryResult result = queryService.handleQuery(state.userMessage());
 
-        return state.withAgentResponse(reply);
+        return state
+                .withAgentResponse(result.reply())
+                .withTicketId(result.ticketId());
     }
 
     public WorkFlowState fallbackExecute(WorkFlowState state, Throwable ex) {

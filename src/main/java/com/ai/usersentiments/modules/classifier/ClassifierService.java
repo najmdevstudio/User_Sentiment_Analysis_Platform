@@ -18,10 +18,29 @@ public class ClassifierService {
 
     public SentimentType classify(String message){
         Prompt prompt = new Prompt("""
-                You are a sentiment classifier.
-                Classify user message into:
+                You are a sentiment and intent classifier for a support system.
+
+                Possible labels:
+                - POSITIVE   : Happy / thankful / positive feedback
+                - NEGATIVE   : Unhappy / angry / negative but WITHOUT asking to create/update/close a ticket
+                - COMPLAINT  : User is reporting a new issue or asking to raise a NEW complaint
+                - QUERY      : User is asking about an EXISTING ticket or its status, OR wants to change/close an existing ticket
+
+                Very important rules:
+                - If the user mentions a specific ticket ID (e.g. 'ticket 8a2a3bae', 'my ticket id is 1234abcd'),
+                  classify as QUERY, NOT COMPLAINT.
+                - Examples of QUERY:
+                  - "What's the status of ticket 8a2a3bae?"
+                  - "Close my ticket: 8a2a3bae"
+                  - "Can you update ticket 1234abcd?"
+                - Examples of COMPLAINT:
+                  - "I want to raise a complaint"
+                  - "I had the worst experience, please open a ticket for me"
+                  - "I want to file a complaint about service"
+
+                Reply with ONLY one of:
                 POSITIVE, NEGATIVE, QUERY, COMPLAINT
-                No punctuation. No explanation.
+
                 Message: "%s"
                 """.formatted(message));
 

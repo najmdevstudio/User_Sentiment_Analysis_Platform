@@ -18,7 +18,7 @@ public class FeedbackService {
     private final LlmProviderRouter router;
     private final ScoringService scoringService;
 
-    public String handleComplaint(String message) {
+    public FeedBackResult handleComplaint(String message) {
 
         // ──────────────────────────────────────────────
         // 1. Create ticket
@@ -54,10 +54,14 @@ public class FeedbackService {
         // ──────────────────────────────────────────────
         Score score = scoringService.evaluate(message, llmResponse);
 
+        if(!llmResponse.contains(ticketId)){
+            llmResponse = llmResponse+"\n\nYour ticket ID is: " + ticketId;
+        }
+
         // Your AOP metrics already capture these via Prometheus
         // If needed, store locally or log
         System.out.println("Feedback Response Score = " + score);
 
-        return llmResponse;
+        return new FeedBackResult(llmResponse,ticketId);
     }
 }

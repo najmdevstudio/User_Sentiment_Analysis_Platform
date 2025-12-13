@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 public class AgentRoutingAspect {
     private final RoutingMetricsRecorder routingMetrics;
 
-    @Around("execution(* com.ai.langgraph.nodes.*Node.execute(..))")
+    @Around("execution(* com.ai.usersentiments.langgraph.nodes.*Node.execute(..))")
     public Object trackAgentRouting(ProceedingJoinPoint pjp) throws Throwable {
         String agent = pjp.getTarget().getClass().getSimpleName();
         long start = System.currentTimeMillis();
