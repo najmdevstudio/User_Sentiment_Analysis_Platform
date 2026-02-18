@@ -35,6 +35,12 @@ This project serves as a **real blueprint for building enterprise AI orchestrati
 
 ---
 
+## Why this project exists
+
+Most AI projects stop at proof-of-concept. This platform is intentionally designed to explore how LLM-driven workflows behave under enterprise constraints such as observability, failure handling, auditability, and long-running service stability using a JVM-first stack commonly found in production systems.
+
+---
+
 # 🚀 Features
 
 ### 🤖 **Multi-Agent Workflow (Node-based LangGraph)**
